@@ -13,11 +13,11 @@ class Channel
 private:
     std::string _name;
     std::vector<Client *> _clientList;
-    std::vector<Client *> _inviteList;
     std::map<std::string, bool> _operators;
     std::string _channelKey;
     std::string _topic;
     size_t _userLimit;
+    bool _inviteOnly;
 
     Channel();
     Channel(const Channel &other);
@@ -26,6 +26,9 @@ private:
 public:
     Channel(std::string name, std::string password);
     ~Channel();
+
+    //member functions
+    void addClient(Client *client);
 };
 
 # endif
