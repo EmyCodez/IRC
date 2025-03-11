@@ -1,31 +1,24 @@
-#include "Ft_Irc.hpp"
-#include <vector>
-#include <cctype>
-#include <cstdlib>
+# include "Server.hpp"
+# include <iostream>
+# include <signal.h>
+# include <vector>
+# include <string>
 
-
-void portAndPass(const std::string& port, char *password)
+int main(int argc, const char **argv)
 {
-    for (std::string::const_iterator it = port.begin(); it != port.end(); ++it) {
-        if (!std::isdigit(*it))
-            throw std::runtime_error("Invalid Port");
+
+    if (argc != 3)
+    {
+        std::cout << "usage: ./ircserv <port> <password>" <<std::endl;
+        return (1);
     }
-    char *end;
-    int value = strtol(port.c_str(), &end, 10);
-}
-
-
-int main(int argc, char **argv)
-{
     try
     {
-        if (argc != 3)
-            throw std::runtime_error("Not right numbers of arguments!");
-        portAndPass(argv[1], argv[2]);
-    }
-    catch (const std::exception& e)
-    {
-        std::cout << e.what() << std::endl;
-    }
-}
 
+    } catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        return (1);
+    }
+    return (0);
+}

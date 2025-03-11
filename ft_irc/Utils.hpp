@@ -4,7 +4,7 @@
 # include <iostream>
 # include <vector>
 
-std::vector<std::string> split(const std::string &str, int sep= ' ');
+std::vector<std::string> split(const std::string &str, int separator);
 void trim(std::string &str);
 size_t stringToInt(const std::string &str);
 
