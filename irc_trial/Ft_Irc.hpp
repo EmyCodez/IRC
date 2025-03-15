@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <sstream>
 #include <unistd.h>
+# include <map>
 
 
 #define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
@@ -24,3 +25,8 @@
 extern bool running;
 
 #include "Client.hpp"
+# include "Server.hpp"
+
+/* Commands */
+void nick(Server *server, Client *client, std::string nick);
+void join(Server *server, Client *client, std::string &message);

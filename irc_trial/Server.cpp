@@ -144,15 +144,8 @@ int Server::handleAuthentication(std::string message, Client **client) {
 	}
 	if ((*client)->getState() == AUTHENTICATED) {
 		if (message.substr(0, 5) == "NICK ") {
-			std::string nick = message.substr(5);
-			if (!(*client)->isValidNickName(nick))
-				(*client)->write(ERR_ERRONEUSNICKNAME);
-			else if ((*client)->isNickNameInUse(this, nick))
-				(*client)->write(ERR_NICKNAMEINUSE);
-			else {
-				(*client)->setNickName(nick);
-				(*client)->setWaitingForNickName(true);
-			}
+			std::string nickname = message.substr(5);
+			nick(this, *client, nickname);
 		}
 		if (message.substr(0, 5) == "USER ") {
 			std::stringstream ss(message.substr(5));
@@ -167,7 +160,7 @@ int Server::handleAuthentication(std::string message, Client **client) {
 				else {
 					(*client)->setUserName(username);
 					(*client)->setRealName(realName);
-					(*client)->setWaitingForUsername(true);
+					//(*client)->setWaitingForUsername(true);
 				}
 			}
 		}
@@ -188,15 +181,10 @@ void Server::disconnected(Client *&client, int socket) {
 
 int Server::Commands(Client **client, int socket, std::string commands)
 {
-	if (commands.substr(0, 5) == "JOIN ") {
-		(*client)->setChannel(commands.substr(5));  // Set the channel
-		trim((*client)->getChannel());  // Clean the channel name
-		if (!(*client)->getChannel().empty() && (*client)->getChannel()[0] == '#' && (*client)->getChannel().length() > 1) {
-			(*client)->setJoinChannel(true);  // Mark as joined
-			std::string broadcastMsg = (*client)->getNickName() + ": " + commands + "\r\n";
-			(*client)->broadcastMessage(this, (*client), broadcastMsg);  // Broadcast the join message
+	if (commands.substr(0, 5) == "JOIN ")
+	    {
+		join(this, *client, commands);
 		}
-	}
 	else if (commands.substr(0, 5) == "QUIT")
 		disconnected((*client), (*client)->getSocketFd());
 	else
@@ -239,14 +227,14 @@ void Server::ClientCommunication() {
 					it = clients.erase(it);
 					break;
 				}
-				if (client->getAuthenticated() && client->getWaitingForUsername() && client->getWaitingForNickName() && !client->getRegistered()) {
-					client->setRegistered(true);
+				if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && !client->getUserName().empty()) {
+					client->setState(REGISTERED);
 					std::string welcomeMsg = ":" + getServerName() + " 001 " + client->getNickName() + " :Welcome to the IRC server, " + client->getNickName() + "\r\n";
 					// server 001 is a numeric reply code used by the IRC server to indicate that the client has successfully connected.
 					send(client->getSocketFd(), welcomeMsg.c_str(), welcomeMsg.length(), 0);
 					std::cout << welcomeMsg;
 				}
-				else if (client->getRegistered())
+				else if (client->getState() == REGISTERED)
 				{
 					if (message == "QUIT")
 					{
@@ -256,16 +244,16 @@ void Server::ClientCommunication() {
 					}
 					else if (message.substr(0, 5) == "JOIN ")
 						Commands(&client, client->getSocketFd(), message);
-					if (client->getJoinChannel())
-					{
-						std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
-						client->broadcastMessage(this, client, broadcastMsg);
-						std::cout << broadcastMsg;
-					}
+				// 	if (client->getJoinChannel())
+				// 	{
+				// 		std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
+				// 		client->broadcastMessage(this, client, broadcastMsg);
+				// 		std::cout << broadcastMsg;
+				// }
 					else
 					{
 						std::string my_message = "Error(421): " + message + " UNKNOWN COMMAND\r\n";
-						send(client->FgetSocketFd(), my_message.c_str(), my_message.length(), 0);
+						send(client->getSocketFd(), my_message.c_str(), my_message.length(), 0);
 						std::cout << my_message;
 					}
 				}
@@ -275,4 +263,25 @@ void Server::ClientCommunication() {
 		}
 		++it;
 	}
+}
+
+void Server::registerChannel(Channel *channel)
+{
+	channels[channel->getName()] = channel;
+}
+
+Channel * Server::getChannel(std::string &name)
+{
+	std::map<std::string, Channel *> :: iterator it = channels.find(name);
+	if(it != channels.end())
+		return (it->second);
+	return NULL;		
+}
+
+void Server::deleteChannel(Channel *channel)
+{
+	std::string channelName = channel->getName();
+
+	delete channel;
+	channels.erase(channelName);
 }

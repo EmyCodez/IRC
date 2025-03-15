@@ -1,5 +1,9 @@
+# ifndef SERVER_HPP
+# define SERVER_HPP
+
 # include "Ft_Irc.hpp"
 # include "Utils.hpp"
+# include "Channel.hpp"
 
 class Server
 {
@@ -16,6 +20,7 @@ class Server
 
     public:
         std::vector<Client *> clients;
+        std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();
         size_t      getPort(void) const;
@@ -32,4 +37,9 @@ class Server
         int         Commands(Client **client, int socket, std::string commands);
         void        disconnected(Client *&client, int socket);
         int         handleAuthentication(std::string message, Client **client);
+        void        registerChannel(Channel *channel);
+        Channel     *getChannel(std::string &name);
+        void        deleteChannel(Channel *Channel);
 };
+
+# endif

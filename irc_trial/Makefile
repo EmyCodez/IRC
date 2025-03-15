@@ -1,7 +1,7 @@
 NAME = ircserv
 
-SRC = main.cpp Server.cpp Client.cpp Channel.cpp Utils.cpp
-
+SRC = main.cpp Server.cpp Client.cpp Channel.cpp Utils.cpp nick.cpp join.cpp
+	 	 
 OBJ = $(SRC:.cpp=.o)
 
 CXX = c++
