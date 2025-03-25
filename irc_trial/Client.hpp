@@ -9,7 +9,6 @@ enum    clientState
     UNAUTHENTICATED,
     AUTHENTICATED,
     REGISTERED,
-    DISCONNECTED,
 };  
 
 class Client    
