@@ -83,6 +83,7 @@ class Server
         Channel     *getChannel(std::string &name);
         void        deleteChannel(Channel *Channel);
         Client      *getClientByFd(int client_fd);
+        void        disconnectClient(int socket, const std::string reason);
 };
 
 

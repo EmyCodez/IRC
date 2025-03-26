@@ -76,7 +76,19 @@ void handlePing(Server &server, Client &client, std::vector<std::string>& params
 	// Function logic
 }
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+	std::string reason = "Leaving";
+
+	if(client.getState() == REGISTERED)
+	{
+		server.disconnectClient(client.getSocketFd(),reason);
+	}
+	else
+	{
+		if(client.getNickName().empty())
+			client.write(":"+ server.getServerName() + " QUIT :" + reason + "\r\n");
+		else
+			client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
+	}
 }
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
 	// Function logic
@@ -288,6 +300,33 @@ void Server::disconnected(Client *&client, int socket) {
 // 	}
 // 	return 1;
 // }
+
+void   Server::disconnectClient(int socket, const std::string reason)
+{
+	Client *client;
+	for(std::vector<Client *>::iterator it = clients.begin(); it != clients.end(); it++)
+	{
+		if ((*it)->getSocketFd() == socket)
+		{
+			client = *it;
+			std::map<std::string, Channel *> :: iterator cit = channels.begin();  // Deleting client from all channels
+			while (cit != channels.end())
+			{
+				cit->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
+				cit->second->removeClient(client);
+				if(cit->second->getClients().size() == 0)
+					channels.erase(cit++);
+				else
+					++cit;	
+			}
+			clients.erase(it);
+			FD_CLR(client->getSocketFd(), &_readfds);
+			close(client->getSocketFd());
+			delete client;
+			break;
+		}
+	}
+}
 
 void Server::ClientCommunication()
  {
