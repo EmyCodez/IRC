@@ -58,7 +58,7 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	client.setRealName(params[3]);
 	if(!client.getNickName().empty())
 		client.setState(REGISTERED);
-	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
+	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +", to the IRC server\r\n");	
 	std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
 	}
 
@@ -89,6 +89,7 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 		else
 			client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
 	}
+	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
 	// Function logic
@@ -136,14 +137,6 @@ std::string Server::getPassword(void) const
 {
 	return (this->_password);
 }
-
-// Client* Server::getClientByFd(int client_fd) {
-// 	for (size_t i = 0; i < clients.size(); i++) {
-// 		if (clients[i]->getSocketFd() == client_fd)
-// 			return clients[i];
-// 	}
-// 	return NULL;
-// }
 
 void Server::portAndPass(const std::string& port, std::string password)
 {
@@ -242,37 +235,6 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
-int Server::handleAuthentication(std::string message, Client **client) {
-	// if (((*client)->getState() == UNAUTHENTICATED)) {
-	// 	if (message.substr(0, 5) == "PASS ") {
-	// 		if (message.substr(5) == this->getPassword()) {
-	// 			(*client)->setState(AUTHENTICATED);
-	// 		} else {
-	// 			(*client)->write("Incorrect Password\r\n");
-	// 			return 1;
-	// 		}
-	// 	}
-	// }
-	// if (message.substr(0, 5) == "USER ") {
-	// 		std::stringstream ss(message.substr(5));
-	// 		std::string username, realName, permission;
-	// 		char mode;
-	// 		ss >> username >> mode >> permission >> realName;
-	// 		if (ss.fail() || username.empty() || permission.empty() || realName.empty())
-	// 			(*client)->write(ERR_NEEDMOREPARAMS);
-	// 		else {
-	// 			if (mode > '8' && mode < '0')  
-	// 				(*client)->write("Invalid arguments\r\n");
-	// 			else {
-	// 				(*client)->setUserName(username);
-	// 				(*client)->setRealName(realName);
-	// 				//(*client)->setWaitingForUsername(true);
-	// 			}
-	// 		}
-	// 	}
-	return 0;
-}
-
 void Server::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {
 		if (!client->getNickName().empty())
@@ -283,23 +245,6 @@ void Server::disconnected(Client *&client, int socket) {
 		out = true;
 	}
 }
-
-// int Server::Commands(Client **client, int socket, std::string commandStr)
-// {
-// 	for (size_t i = 0; i < commands.size(); i++) {
-// 		// if (commandStr.fi)
-// 		if (commandStr.substr(0, commands[i].label.size()) == commands[i].label) {
-// 			std::vector<std::string> params = split(commandStr.substr(commands[i].label.size() + 1), ' ');
-// 			if ((*client)->getState() >= commands[i].requiredAuthState)
-// 			{
-// 				if (commandStr.substr(0, 5) == "JOIN ")
-// 					commands[i].handler(this, *client, params);
-// 				return 0;
-// 			}
-// 		}
-// 	}
-// 	return 1;
-// }
 
 void   Server::disconnectClient(int socket, const std::string reason)
 {
@@ -331,7 +276,7 @@ void   Server::disconnectClient(int socket, const std::string reason)
 void Server::ClientCommunication()
  {
 	out = 0;
-	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
 	 {
 		Client* client = *it;
      	if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
@@ -354,7 +299,8 @@ void Server::ClientCommunication()
 							if (line.rfind(cmd->label, 0) == 0) 
 							{
 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
-								
+								if (!cmd->label.compare("QUIT"))
+									out = 1;
 								if(cmd->requiredAuthState == UNAUTHENTICATED)
 									cmd->handler(*this, *client, params);
 								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
@@ -367,12 +313,16 @@ void Server::ClientCommunication()
 							++cmd;
 						}
 				}
-			}catch(const std::exception& e)
-				{
-					std::cerr << e.what() << '\n';
-				}
 			}
-	
+			catch(const std::exception& e)
+			{
+					std::cerr << e.what() << '\n';
+			}
+		}
+		if (out == 1)
+			continue;
+		else
+			it++;
 	}
  }
 
