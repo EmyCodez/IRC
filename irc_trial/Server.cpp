@@ -24,17 +24,17 @@ void handlePass(Server &server, Client &client, std::vector<std::string>& params
  {
 	if(params.empty())
 	{
-		client.write(ERR_NEEDMOREPARAMS);
+		client.write(server.getServerName() + ERR_NEEDMOREPARAMS);
 		return;
 	}
 	if(client.getState() == AUTHENTICATED || client.getState() == REGISTERED)
 	{
-		client.write(ERR_ALREADYREGISTERED);
+		client.write(server.getServerName() + ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params[0] != server.getPassword())
 	{
-		client.write(ERR_PASSWDMISMATCH);
+		client.write(server.getServerName() + ERR_PASSWDMISMATCH);
 		return;
 	}
 	client.setState(AUTHENTICATED);
@@ -45,12 +45,12 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	(void) server;
 	if(client.getState() == REGISTERED)
 	{
-		client.write(ERR_ALREADYREGISTERED);
+		client.write(server.getServerName() + ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params.empty() || params.size() < 4)
 	{
-		client.write(ERR_NEEDMOREPARAMS);
+		client.write(server.getServerName() + ERR_NEEDMOREPARAMS);
 		return;
 	}
 
@@ -58,7 +58,7 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	client.setRealName(params[3]);
 	if(!client.getNickName().empty())
 		client.setState(REGISTERED);
-	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +", to the IRC server\r\n");	
+	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + RPL_WELCOME + client.getNickName() + "\r\n");	
 	std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
 	}
 
@@ -75,22 +75,32 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
-	std::string reason = "Leaving";
 
+void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
+	
+	std::string reason = params.empty() ? "Leaving..." : "";
+
+	if(!params.empty())
+		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
+				reason.append(*it + " ");
+	
 	if(client.getState() == REGISTERED)
 	{
+		if (reason.at(0) == ':')
+			reason = reason.substr(1);
 		server.disconnectClient(client.getSocketFd(),reason);
+
 	}
 	else
 	{
 		if(client.getNickName().empty())
-			client.write(":"+ server.getServerName() + " QUIT :" + reason + "\r\n");
+			client.write(":"+ server.getServerName() + " * QUIT :" + reason + "\r\n");
 		else
 			client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
 	}
 	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
+
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
@@ -248,21 +258,20 @@ void Server::disconnected(Client *&client, int socket) {
 
 void   Server::disconnectClient(int socket, const std::string reason)
 {
-	Client *client;
 	for(std::vector<Client *>::iterator it = clients.begin(); it != clients.end(); it++)
 	{
 		if ((*it)->getSocketFd() == socket)
 		{
-			client = *it;
-			std::map<std::string, Channel *> :: iterator cit = channels.begin();  // Deleting client from all channels
-			while (cit != channels.end())
+			Client *client = *it;
+			std::map<std::string, Channel *> :: iterator chanIter = channels.begin();  // Deleting client from all channels
+			while (chanIter != channels.end())
 			{
-				cit->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
-				cit->second->removeClient(client);
-				if(cit->second->getClients().size() == 0)
-					channels.erase(cit++);
+				chanIter->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
+				chanIter->second->removeClient(client);
+				if(chanIter->second->getClients().size() == 0)
+					channels.erase(chanIter++);
 				else
-					++cit;	
+					++chanIter;	
 			}
 			clients.erase(it);
 			FD_CLR(client->getSocketFd(), &_readfds);
@@ -308,7 +317,7 @@ void Server::ClientCommunication()
 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
 									cmd->handler(*this, *client, params);
 								else
-									client->write(":ft_irc.server 451 : You have not registered\r\n ");
+									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n ");
 							}
 							++cmd;
 						}

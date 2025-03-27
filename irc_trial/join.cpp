@@ -32,7 +32,6 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
         client.write(":"+server.getServerName()+ " 461 " + client.getNickName() + " JOIN :Not enough parameters \r\n");
         return;
      }
-     std::cout << " \n params size = "<<params.size() << std::endl;
      std::vector<std::string> channels = split(params[0], ',');
      std::vector<std::string> keys;
      if(params.size() == 2)
@@ -57,7 +56,7 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
        Channel *channel = server.getChannel(name);
        if(!channel)
         {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
-        channel = new Channel(name, channelKey );
+        channel = new Channel(name, channelKey);
         server.registerChannel(channel);
         channel->addClient(&client);
         channel->addOperator(&client);
@@ -70,20 +69,52 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
           ++it;
         }
         client.write(":" + client.getNickName() + " JOIN " + channel->getName() + "\r\n");
-        client.write(":" +server.getServerName() + " MODE "+ channel->getName() + " +t\r\n");
+        client.write(":" + server.getServerName() + " MODE "+ channel->getName() + " +t\r\n");
         client.write(":"+ server.getServerName() + " 353 " + client.getNickName()+ " = " + channel->getName() + " :" + users + "\r\n");
         client.write(":"+ server.getServerName() + " 366 " + client.getNickName()+ " = " + channel->getName() + " :End of /NAMES list.\r\n");
         std::cout << ":" << client.getNickName() << " JOIN "<< channel->getName() << "\r\n";
-        channel->broadcast(":" +client.getNickName()+ " JOIN " + channel->getName() + "\r\n", &client);
+        channel->broadcast(":" + client.getNickName()+ " JOIN " + channel->getName() + "\r\n", &client);
         continue;
         }
         if(channel->isClientInChannel(&client))
-             {
-               client.write(":ircserv.server 443 "+ client.getNickName() + " " + channel->getName()+ "  is already on channel.\r\n");
-               return;
-             }
+          {
+            client.write(":" + channel->getName() + " 443 "+ " " + client.getNickName() +  "  is already on channel.\r\n");
+            return;
+          }
+        if(channel->getUserLimit() > 0 && channel->getClients().size() > channel->getUserLimit() )
+          {
+            client.write(": 471 "+ client.getNickName() +  " :Cannot join channel (+l) \r\n");
+            return;
+          }  
+        if(!channel->getChannelKey().empty())  
+        {
+          if(channelKey.empty() || channel->getChannelKey() != channelKey)
+          {
+            client.write(" 471 "+ client.getNickName() +  " :Cannot join channel (+k) \r\n");
+            return;
+          }  
+        }
+        if(channel->getInviteOnly() && !channel->isInvited(&client))
+        {
+          client.write(": 473 "+ client.getNickName() +  " :Cannot join channel (+i)\r\n");
+          return;
+        }
         channel->addClient(&client);
+        std::string users;
+        std::vector<std::string> nicknames = channel->getNickNames();
+        std::vector<std::string> :: iterator it = nicknames.begin();
+        while( it != nicknames.end())
+        {
+          users.append(*it + " ");
+          ++it;
+        }
         client.write(":" + client.getNickName() + " JOIN " + channel->getName() + "\r\n");
+        if(channel->getTopic().empty())
+            client.write(":"+ server.getServerName() + " 331 "+ client.getNickName() + " " + channel->getName()+ " :No topic is set\r\n");  
+        else
+            client.write(":"+ server.getServerName() + " 332 "+ client.getNickName() + " " + channel->getName()+ " :" + channel->getTopic() + "\r\n");
+        client.write(":"+ server.getServerName() + " 353 " + client.getNickName()+ " = " + channel->getName() + " :" + users + "\r\n");
+        client.write(":"+ server.getServerName() + " 366 " + client.getNickName()+ " = " + channel->getName() + " :End of /NAMES list.\r\n");
         channel->broadcast(":" +client.getNickName()+ " JOIN " + channel->getName() + "\r\n", &client);
         }
     }
