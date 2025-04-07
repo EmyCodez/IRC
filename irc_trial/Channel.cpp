@@ -3,7 +3,7 @@
 Channel::Channel() :_inviteOnly(false), _userLimit(0), _topic("") {}
 
 Channel::Channel(std::string name, std::string password) 
-    :_name(name), _channelKey(password), _inviteOnly(false), _userLimit(0), _topic("") {}
+    :_name(name), _channelKey(password), _inviteOnly(false), _userLimit(0), _topicPrivilege(false),_topic("") {}
 
 Channel::Channel(const Channel &other) 
 {
@@ -12,6 +12,7 @@ Channel::Channel(const Channel &other)
     _channelKey = other._channelKey;
     _inviteOnly = other._inviteOnly;
     _userLimit = other._userLimit;
+    _topicPrivilege = other._topicPrivilege;
 }
 
 Channel & Channel::operator = (const Channel &other)
@@ -23,6 +24,7 @@ Channel & Channel::operator = (const Channel &other)
         _channelKey = other._channelKey;
         _inviteOnly = other._inviteOnly;
         _userLimit = other._userLimit;
+        _topicPrivilege = other._topicPrivilege;
     }
     return (*this);
 }
@@ -103,6 +105,10 @@ void Channel::setInviteOnly(bool inviteValue)
     _inviteOnly = inviteValue;
 }
 
+void Channel::setTopicPrivilege(bool topicPriv)
+{
+    _topicPrivilege = topicPriv;
+}
 void Channel::setInvited(Client *client)
 {
     std::vector<Client *> :: iterator it = _invitedList.begin();

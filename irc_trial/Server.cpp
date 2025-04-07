@@ -1,5 +1,6 @@
 #include "Ft_Irc.hpp"
 # include "Server.hpp"
+# include <ctype.h>
 
 Server::Server(std::string name) : _serverName(name) {
 	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED));
@@ -42,7 +43,6 @@ void handlePass(Server &server, Client &client, std::vector<std::string>& params
 
 void handleUser(Server &server, Client &client, std::vector<std::string>& params) 
 {
-	(void) server;
 	if(client.getState() == REGISTERED)
 	{
 		client.write(server.getServerName() + ERR_ALREADYREGISTERED);
@@ -57,10 +57,12 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	client.setUserName(params[0]);
 	client.setRealName(params[3]);
 	if(!client.getNickName().empty())
+	{
 		client.setState(REGISTERED);
-	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + RPL_WELCOME + client.getNickName() + "\r\n");	
-	std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
-	}
+		client.write(":" + client.getPrefix() + " 001 " + client.getNickName() + " :Welcome " + client.getNickName() + " to the " + server.getServerName() + " network\r\n");	
+		std::cout << " 001 " + client.getPrefix() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
+	}	
+}
 
 
 void handlePart(Server &server, Client &client, std::vector<std::string>& params) {
@@ -78,9 +80,10 @@ void handlePing(Server &server, Client &client, std::vector<std::string>& params
 
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
 	
+	
 	std::string reason = params.empty() ? "Leaving..." : "";
-
-	if(!params.empty())
+	std::cout << "reason =" << reason << std::endl;
+	if(reason.empty())
 		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
 				reason.append(*it + " ");
 	
@@ -97,8 +100,8 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 			client.write(":"+ server.getServerName() + " * QUIT :" + reason + "\r\n");
 		else
 			client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
+		std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 	}
-	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
 
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
@@ -300,27 +303,42 @@ void Server::ClientCommunication()
 				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
 				{
 					std::string line = *it;
+					bool isCmd = false;
+					for(int i=0; i < line.length(); i++)
+					{
+						if(line[0] == '/')
+							isCmd = true;
+						line[i] = toupper((char)line[i]);
+						if(line[i] == ' ')
+							break;
+					}
 					if(line[0] == '/')
-					      line.erase(0,1);
+						line.erase(0,1);
 					std::vector <Command> :: iterator cmd = commands.begin();
-						while(cmd != commands.end())
+					while(cmd != commands.end())
 						{
 							if (line.rfind(cmd->label, 0) == 0) 
 							{
+								if(line.size() == cmd->label.size())
+									line += " ";
 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
 								if (!cmd->label.compare("QUIT"))
-									out = 1;
+										out = 1;
 								if(cmd->requiredAuthState == UNAUTHENTICATED)
-									cmd->handler(*this, *client, params);
+										cmd->handler(*this, *client, params);
 								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
 									cmd->handler(*this, *client, params);
 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
 									cmd->handler(*this, *client, params);
-								else
+								else 
 									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n ");
-							}
+								break;	
+							}		
 							++cmd;
 						}
+						if(cmd == commands.end() && client->getState() == REGISTERED && isCmd)
+								client->write(":" + this->getServerName() +" 421 " +  line + ":Unknown Command\r\n ");
+					 
 				}
 			}
 			catch(const std::exception& e)

@@ -46,6 +46,7 @@ public:
     void setTopic(const std::string &topic);
     void setUserLimit(const size_t limit);
     void setInviteOnly(bool inviteValue);
+    void setTopicPrivilege(bool topicPriv);
     void setInvited(Client *client);
 
     //member functions
