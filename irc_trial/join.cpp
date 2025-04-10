@@ -26,7 +26,7 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
 {
   if(params.empty())
      {
-        client.write(":"+ server.getServerName()+ " 461 " + client.getNickName() + " JOIN :Not enough parameters \r\n");
+        client.write(":"+ server.getServerName()+ " 461 " + client.getNickName() + " JOIN :Not enough parameters\r\n");
         return;
      }
   std::vector<std::string> channels = split(params[0], ',');

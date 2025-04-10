@@ -37,5 +37,6 @@ extern bool running;
 
 
 /* Commands */
-void handleNick(Server &server, Client &client, std::vector<std::string>& params) ;
-void handleJoin(Server &server, Client &client, std::vector<std::string>  &params) ;
+void handleNick(Server &server, Client &client, std::vector<std::string> &params);
+void handleJoin(Server &server, Client &client, std::vector<std::string>  &params);
+void handleMode(Server &server, Client &client, std::vector<std::string> &params);

@@ -218,3 +218,15 @@ bool Channel::isClientInChannel(const Client *client) const
     }
     return (false);
 }
+
+Client * Channel::getClientWithNickname(const std::string &nickname)
+{
+    std::vector<Client *>::const_iterator it = _clientList.begin();
+    while (it != _clientList.end())
+    {
+        if((*it)->getNickName() == nickname)
+            return (*it);
+        ++it;
+    }
+    return (NULL); 
+}

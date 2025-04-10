@@ -164,97 +164,100 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
     channel->setInvited(targetClient);
 }
 
-void handleMode(Server &server, Client &client, std::vector<std::string>& params) {
-	if (params.empty()) {
-        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
-        return;
-    }
+// void handleMode(Server &server, Client &client, std::vector<std::string>& params) {
+// 	if (params.empty()) {
+//         client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
+//         return;
+//     }
 
-    std::string target = params[0];
-    std::string mode = params[1];
+//     std::string target = params[0];
+//     std::string mode = params[1];
 
-    // If target starts with # or &, it's a channel
-    if (target[0] == '#' || target[0] == '&') {
-        Channel *channel = server.getChannel(target);
-        if (!channel) {
-            client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + target + " :No such channel\r\n");
-            return;
-        }
+//     // If target starts with # or &, it's a channel
+//     if (target[0] == '#' || target[0] == '&') {
+//         Channel *channel = server.getChannel(target);
+//         if (!channel) {
+//             client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + target + " :No such channel\r\n");
+//             return;
+//         }
 
-        // Check if client is in the channel first
-        if (!channel->isClientInChannel(&client)) {
-            client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + target + " :You're not on that channel\r\n");
-            return;
-        }
+//         // Check if client is in the channel first
+//         if (!channel->isClientInChannel(&client)) {
+//             client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + target + " :You're not on that channel\r\n");
+//             return;
+//         }
 
-        // Then check if they're an operator
-        if (!channel->isOperator(&client)) {
-            client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
-            return;
-        }
+//         // // Then check if they're an operator
+//         // if (!channel->isOperator(&client)) {
+//         //     client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
+//         //     return;
+//         // }
 
-        // Handle mode changes
-        if (mode[0] == '+') {
-            for (size_t i = 1; i < mode.size(); i++) {
-                switch (mode[i]) {
-                    case 'i': // Invite-only mode
-                        channel->setInviteOnly(true);
-                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +i\r\n", &client);
-                        break;
-                    case 'o': // Give operator status
-                        if (params.size() > 2) {
-                            Client *targetClient = nullptr;
-                            for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
-                                if ((*it)->getNickName() == params[2]) {
-                                    targetClient = *it;
-                                    break;
-                                }
-                            }
-                            if (targetClient && channel->isClientInChannel(targetClient)) {
-                                channel->addOperator(targetClient);
-                                channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +o " + params[2] + "\r\n", &client);
-                            }
-                        }
-                        break;
-                }
-            }
-        } else if (mode[0] == '-') {
-            for (size_t i = 1; i < mode.size(); i++) {
-                switch (mode[i]) {
-                    case 'i': // Remove invite-only mode
-                        channel->setInviteOnly(false);
-                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -i\r\n", &client);
-                        break;
-                    case 'o': // Remove operator status
-                        if (params.size() > 2) {
-                            Client *targetClient = nullptr;
-                            for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
-                                if ((*it)->getNickName() == params[2]) {
-                                    targetClient = *it;
-                                    break;
-                                }
-                            }
-                            if (targetClient && channel->isClientInChannel(targetClient)) {
-                                channel->removeOperator(targetClient);
-                                channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -o " + params[2] + "\r\n", &client);
-                            }
-                        }
-                        break;
-                }
-            }
-        }
-    }
-}
+//         // Handle mode changes
+//         if (mode[0] == '+') {
+//             for (size_t i = 1; i < mode.size(); i++) {
+//                 switch (mode[i]) {
+//                     case 'i': // Invite-only mode
+//                         channel->setInviteOnly(true);
+//                         channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +i\r\n", &client);
+//                         break;
+//                     case 'o': // Give operator status
+//                         if (params.size() > 2) {
+//                             Client *targetClient = nullptr;
+//                             for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+//                                 if ((*it)->getNickName() == params[2]) {
+//                                     targetClient = *it;
+//                                     break;
+//                                 }
+//                             }
+//                             if (targetClient && channel->isClientInChannel(targetClient)) {
+//                                 channel->addOperator(targetClient);
+//                                 channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +o " + params[2] + "\r\n", &client);
+//                             }
+//                         }
+//                         break;
+//                 }
+//             }
+//         } else if (mode[0] == '-') {
+//             for (size_t i = 1; i < mode.size(); i++) {
+//                 switch (mode[i]) {
+//                     case 'i': // Remove invite-only mode
+//                         channel->setInviteOnly(false);
+//                         channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -i\r\n", &client);
+//                         break;
+//                     case 'o': // Remove operator status
+//                         if (params.size() > 2) {
+//                             Client *targetClient = nullptr;
+//                             for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+//                                 if ((*it)->getNickName() == params[2]) {
+//                                     targetClient = *it;
+//                                     break;
+//                                 }
+//                             }
+//                             if (targetClient && channel->isClientInChannel(targetClient)) {
+//                                 channel->removeOperator(targetClient);
+//                                 channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -o " + params[2] + "\r\n", &client);
+//                             }
+//                         }
+//                         break;
+//                 }
+//             }
+//         }
+//     }
+// }
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
-	if (params.empty()) {
-        client.write(":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n");
+	std::string msg;
+    if (params.empty()) {
+        msg = ":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n";
+        client.write(msg);
         return;
     }
     
     std::string token = params[0];
     
     // Reply with PONG message containing the same token
-    client.write(":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n");
+    msg = ":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n";
+    client.write(msg);
 }
 
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
