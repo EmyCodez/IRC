@@ -1,6 +1,6 @@
 # include "Channel.hpp"
 
-Channel::Channel() :_inviteOnly(false), _userLimit(0), _topic("") {}
+Channel::Channel() :_inviteOnly(false), _userLimit(0), _topic(""), _channelKey("") {}
 
 Channel::Channel(std::string name, std::string password) 
     :_name(name), _channelKey(password), _inviteOnly(false), _userLimit(0), _topicPrivilege(false),_topic("") {}
@@ -77,6 +77,22 @@ bool Channel::getInviteOnly() const
 bool Channel::getTopicPrivilege() const
 {
     return(_topicPrivilege);
+}
+
+std::string Channel::getChannelMode() const
+{
+  std::string modeStr = "";
+
+  if(this->getTopicPrivilege())
+    modeStr.append("t");
+  if(this->getUserLimit() > 0)  
+    modeStr.append("l");
+  if(this->getInviteOnly())
+    modeStr.append("i");
+  if(!this->getChannelKey().empty())
+    modeStr.append("k");
+
+  return (modeStr);
 }
 
 //setters
@@ -230,3 +246,5 @@ Client * Channel::getClientWithNickname(const std::string &nickname)
     }
     return (NULL); 
 }
+
+

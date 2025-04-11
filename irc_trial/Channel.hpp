@@ -21,6 +21,7 @@ private:
     std::vector<Client *> _invitedList;
     bool _inviteOnly;
     bool _topicPrivilege;
+    
 
     Channel();
     Channel(const Channel &other);
@@ -39,6 +40,7 @@ public:
     std::vector<std::string> getNickNames() const;
     bool getInviteOnly() const;
     bool getTopicPrivilege() const;
+    std::string getChannelMode() const;
 
     //setters
     void setChannelKey(const std::string &key);
@@ -48,7 +50,7 @@ public:
     void setInviteOnly(bool inviteValue);
     void setTopicPrivilege(bool topicPriv);
     void setInvited(Client *client);
-
+   
     //member functions
     void addClient(Client *client);
     void removeClient(Client *client);
