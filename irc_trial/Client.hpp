@@ -32,7 +32,7 @@ public:
     Client &operator = (const Client &other);
     Client(int fd, std::string &ip);
     ~Client();
-  
+    std::string _receiveBuffer;
     //setters
     void    setSocketFd(int socketFd);
     void    setNickName(std::string &nickname);

@@ -487,6 +487,14 @@ void Server::setFds() {
 	}
 }
 
+static void signal_handler(int signal)
+{
+	if (signal == SIGINT)
+		running = 0;
+	if (signal == SIGQUIT)
+		running = 1;
+}
+
 void Server::acceptConnection(void)
 {
 	struct sockaddr_in client_addr;
@@ -558,16 +566,14 @@ void   Server::disconnectClient(int socket, const std::string reason)
 					delete chanIter->second;
 					channels.erase(chanIter++);
 				}
+					
 				else
 					++chanIter;	
 			}
-		    if (client)
-            {
-                FD_CLR(client->getSocketFd(), &_readfds);
-                close(client->getSocketFd());
-                delete client;
-            }
-            clients.erase(it);
+			clients.erase(it);
+			FD_CLR(client->getSocketFd(), &_readfds);
+			close(client->getSocketFd());
+			delete client;
 			break;
 		}
 	}
@@ -575,32 +581,25 @@ void   Server::disconnectClient(int socket, const std::string reason)
 
 void Server::ClientCommunication()
  {
-	
+	out = 0;
 	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
 	 {
-        out = 0;
 		Client* client = *it;
-        if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
+     	if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
 		{
 			char buffer[1024];
 			memset(buffer,0, sizeof(buffer));
 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
-			if (bytesReceived <= 0) {
-                disconnectClient(client->getSocketFd(), "QUIT");
-                continue;
-            }            
 			buffer[bytesReceived] = '\0';
 			try
 			{
-				std::string line(buffer);
-                client->_receiveBuffer += line;
-                size_t pos;
-                while ((pos = client->_receiveBuffer.find('\n')) != std::string::npos && out == 0) {
-                    line = client->_receiveBuffer.substr(0, pos);
-					if (!line.empty() && line[line.size() - 1] == '\r')
-                        line = line.substr(0, line.size() - 1);
+				std::vector<std::string> messages = split(buffer,'\n');
+				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
+				{
+					std::string line = *it;
+					if(line.empty()) continue;
 					int cmd_length = 0;
-					for(size_t i=0; i < line.length(); i++)
+					for(int i=0; i < line.length(); i++)
 					{
 						line[i] = toupper((char)line[i]);
 						if(line[i] == ' ')
@@ -611,7 +610,6 @@ void Server::ClientCommunication()
 					}
 					if(line[0] == '/')
 						line.erase(0,1);
-                    client->_receiveBuffer.erase(0, pos + 1);
 					std::vector <Command> :: iterator cmd = commands.begin();
 					while(cmd != commands.end())
 						{
@@ -636,9 +634,8 @@ void Server::ClientCommunication()
 						}
 						if(cmd == commands.end() && client->getState() == REGISTERED)
 									client->write(":" + this->getServerName() +" 421 " + client->getNickName() + " " + line.substr(0, cmd_length) + " :Unknown Command\r\n");
-                        if (out == 1)
-                            break ;
-                }
+					 
+				}
 			}
 			catch(const std::exception& e)
 			{
